@@ -21,11 +21,28 @@ const (
 
 type server struct {
 	// db *sql.DB
-	rl ratelimit.Limiter
+	dailyLimit ratelimit.Limiter
+	secLimit   ratelimit.Limiter
+	elmLimit   ratelimit.Limiter
 }
 
+// TODO: Implement
 func (s *server) geocodeHandler(w http.ResponseWriter, r *http.Request) {
-	s.rl.TryTake()
+	sec, _ := s.secLimit.TryTake()
+	elm := false
+	if sec {
+		elm, _ = s.elmLimit.TryTake()
+	}
+	daily := false
+	if elm {
+		daily, _ = s.dailyLimit.TryTake()
+	}
+
+	if !(sec && daily && elm) {
+		json, _ := json.Marshal(moogle.GEOCODE_QUERY_LIMIT)
+		w.Write(json)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	res := moogle.GeocodeResponse{}
@@ -58,9 +75,17 @@ func parsell(s []string) []moogle.Point {
 // }
 
 func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
-	ready, _ := s.rl.TryTake()
+	sec, _ := s.secLimit.TryTake()
+	elm := false
+	if sec {
+		elm, _ = s.elmLimit.TryTake()
+	}
+	daily := false
+	if elm {
+		daily, _ = s.dailyLimit.TryTake()
+	}
 
-	if !ready {
+	if !(sec && daily && elm) {
 		json, _ := json.Marshal(moogle.MATRIX_QUERY_LIMIT)
 		w.Write(json)
 		return
@@ -110,8 +135,6 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	rl := ratelimit.New(100, ratelimit.WithoutSlack) // per second
-
 	// psqlInfo := fmt.Sprintf("host=%s port=%d dbname=%s sslmode=disable",
 	// 	host, port, dbname)
 
@@ -126,7 +149,11 @@ func main() {
 	// 	panic(err)
 	// }
 
-	s := server{rl: rl}
+	s := server{
+		dailyLimit: ratelimit.New(500000, ratelimit.WithoutSlack),
+		secLimit:   ratelimit.New(100, ratelimit.WithoutSlack),
+		elmLimit:   ratelimit.New(1000, ratelimit.WithoutSlack),
+	}
 
 	http.HandleFunc("/maps/api/geocode/json", s.geocodeHandler)
 	http.HandleFunc("/maps/api/distancematrix/json", s.distanceMatrixHandler)

@@ -19,6 +19,12 @@ var MATRIX_DENIED = MatrixResponse{
 	Status:               RequestDenied,
 }
 
+var GEOCODE_QUERY_LIMIT = GeocodeResponse{
+	ErrorMessage: missingAPIKey,
+	Results:      []AddressResult{},
+	Status:       OverQueryLimit,
+}
+
 var GEOCODE_DENIED = GeocodeResponse{
 	ErrorMessage: missingAPIKey,
 	Results:      []AddressResult{},
