@@ -1,16 +1,32 @@
 package moogle
 
-var OVER_QUERY_LIMIT = MatrixResponse{
-	Status: OverQueryLimit,
+// Strings
+const missingAPIKey = "You must use an API key to authenticate each request to Google Maps Platform APIs. For additional information, please refer to http://g.co/dev/maps-no-account"
+const geocodeInvalidRequest = "Invalid request. Missing the 'address', 'components', 'latlng' or 'place_id' parameter."
+
+var MATRIX_QUERY_LIMIT = MatrixResponse{
+	DestinationAddresses: []string{},
+	OriginAddresses:      []string{},
+	Rows:                 []DistanceRow{},
+	Status:               OverQueryLimit,
 }
 
-var MATRIX_NO_KEY = MatrixResponse{
-	ErrorMessage: "You must use an API key to authenticate each request to Google Maps Platform APIs. For additional information, please refer to http://g.co/dev/maps-no-account",
+var MATRIX_DENIED = MatrixResponse{
+	DestinationAddresses: []string{},
+	OriginAddresses:      []string{},
+	ErrorMessage:         missingAPIKey,
+	Rows:                 []DistanceRow{},
+	Status:               RequestDenied,
+}
+
+var GEOCODE_DENIED = GeocodeResponse{
+	ErrorMessage: missingAPIKey,
+	Results:      []AddressResult{},
 	Status:       RequestDenied,
 }
 
 var GEOCODE_INVALID_REQUEST = GeocodeResponse{
-	ErrorMessage: "Invalid request. Missing the 'address', 'components', 'latlng' or 'place_id' parameter.",
+	ErrorMessage: geocodeInvalidRequest,
 	Results:      []AddressResult{},
 	Status:       InvalidRequest,
 }

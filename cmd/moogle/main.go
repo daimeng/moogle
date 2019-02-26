@@ -25,7 +25,7 @@ type server struct {
 }
 
 func (s *server) geocodeHandler(w http.ResponseWriter, r *http.Request) {
-	s.rl.Take()
+	s.rl.TryTake()
 
 	w.Header().Set("Content-Type", "application/json")
 	res := moogle.GeocodeResponse{}
@@ -61,7 +61,7 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 	ready, _ := s.rl.TryTake()
 
 	if !ready {
-		json, _ := json.Marshal(moogle.OVER_QUERY_LIMIT)
+		json, _ := json.Marshal(moogle.MATRIX_QUERY_LIMIT)
 		w.Write(json)
 		return
 	}
@@ -85,7 +85,7 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 	for i := range origins {
 		elems := make([]moogle.DistanceElm, dlen)
 		for j := range dests {
-			d := int(dists[i*olen+j])
+			d := int(dists[i*dlen+j])
 			elems[j].Distance = &moogle.TextedInt{
 				Value: d,
 				Text:  fmt.Sprintf("%d m", d),
