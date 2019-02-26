@@ -5,16 +5,31 @@ import (
 	"encoding/json"
 )
 
+// QueryStatus is top level query status
 type QueryStatus int
 
 const (
+	// QueryOk indicates the response contains a valid result.
 	QueryOk QueryStatus = iota
+	// QueryZeroResults indicates that the geocode was successful but returned no results.
+	// This may occur if the geocoder was passed a non-existent address.
 	QueryZeroResults
+	// OverDailyLimit indicates any of the following:
+	// * The API key is missing or invalid.
+	// * Billing has not been enabled on your account.
+	// * A self-imposed usage cap has been exceeded.
+	// * The provided method of payment is no longer valid (for example, a credit card has expired).
 	OverDailyLimit
+	// OverQueryLimit indicates the service has received too many requests from your application within the allowed time period.
 	OverQueryLimit
+	// MaxElementsExceeded indicates that the product of origins and destinations exceeds the per-query limit.
 	MaxElementsExceeded
+	// RequestDenied indicates that the service denied use of the Distance Matrix service by your application.
 	RequestDenied
+	// InvalidRequest indicates that the provided request was invalid.
 	InvalidRequest
+	// UnknownError indicates the request could not be processed due to a server error.
+	// The request may succeed if you try again.
 	UnknownError
 )
 
@@ -44,6 +59,7 @@ func (s QueryStatus) String() string {
 	return queryStatusToString[s]
 }
 
+// MarshalJSON QueryStatus to JSON
 func (s QueryStatus) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
 	buffer.WriteString(queryStatusToString[s])
@@ -51,6 +67,7 @@ func (s QueryStatus) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// UnmarshalJSON QueryStatus from JSON
 func (s *QueryStatus) UnmarshalJSON(b []byte) error {
 	var j string
 	err := json.Unmarshal(b, &j)
@@ -62,12 +79,17 @@ func (s *QueryStatus) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// ElmStatus is Element level distance matrix status
 type ElmStatus int
 
 const (
+	// ElmZeroResults indicates that the origin and/or destination of this pairing could not be geocoded.
 	ElmZeroResults ElmStatus = iota
+	// ElmOk indicates the response contains a valid result.
 	ElmOk
+	// NotFound indicates no route could be found between the origin and destination.
 	NotFound
+	// MaxRouteLengthExceeded indicates the requested route is too long and cannot be processed.
 	MaxRouteLengthExceeded
 )
 
