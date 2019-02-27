@@ -28,6 +28,8 @@ type server struct {
 
 // TODO: Implement
 func (s *server) geocodeHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	sec, _ := s.secLimit.TryTake()
 	elm := false
 	if sec {
@@ -44,7 +46,6 @@ func (s *server) geocodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	res := moogle.GeocodeResponse{}
 	json, _ := json.Marshal(res)
 	w.Write(json)
@@ -75,6 +76,8 @@ func parsell(s []string) []moogle.Point {
 // }
 
 func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	sec, _ := s.secLimit.TryTake()
 	elm := false
 	if sec {
@@ -124,13 +127,13 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 		rows[i].Elements = elems
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	res := moogle.MatrixResponse{
 		DestinationAddresses: dests,
 		OriginAddresses:      origins,
 		Rows:                 rows,
 	}
 	json, _ := json.Marshal(res)
+	log.Printf("%s", json)
 	w.Write(json)
 }
 
@@ -151,8 +154,8 @@ func main() {
 
 	s := server{
 		dailyLimit: ratelimit.New(500000, ratelimit.WithoutSlack),
-		secLimit:   ratelimit.New(100, ratelimit.WithoutSlack),
-		elmLimit:   ratelimit.New(1000, ratelimit.WithoutSlack),
+		secLimit:   ratelimit.New(100),
+		elmLimit:   ratelimit.New(1000),
 	}
 
 	http.HandleFunc("/maps/api/geocode/json", s.geocodeHandler)
