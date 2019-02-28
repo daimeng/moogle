@@ -22,10 +22,10 @@ const (
 
 type server struct {
 	// db *sql.DB
-	clock      *clock.Mock
-	dailyLimit ratelimit.Limiter
-	secLimit   ratelimit.Limiter
-	elmLimit   ratelimit.Limiter
+	clock *clock.Mock
+	// dailyLimit ratelimit.Limiter
+	secLimit ratelimit.Limiter
+	elmLimit ratelimit.Limiter
 }
 
 func parsell(s []string) []moogle.Point {
@@ -77,17 +77,17 @@ func main() {
 		clock := clock.NewMock()
 
 		s = server{
-			clock:      clock,
-			dailyLimit: ratelimit.New(500000, ratelimit.WithClock(clock), ratelimit.WithoutSlack),
-			secLimit:   ratelimit.New(100, ratelimit.WithClock(clock)),
-			elmLimit:   ratelimit.New(1000, ratelimit.WithClock(clock)),
+			clock: clock,
+			// dailyLimit: ratelimit.New(500000, ratelimit.WithClock(clock), ratelimit.WithoutSlack),
+			secLimit: ratelimit.New(100, ratelimit.WithClock(clock)),
+			elmLimit: ratelimit.New(1000, ratelimit.WithClock(clock)),
 		}
 		http.HandleFunc("/step", s.clockStepHandler)
 	} else {
 		s = server{
-			dailyLimit: ratelimit.New(500000, ratelimit.WithoutSlack),
-			secLimit:   ratelimit.New(100),
-			elmLimit:   ratelimit.New(1000),
+			// dailyLimit: ratelimit.New(500000, ratelimit.WithoutSlack),
+			secLimit: ratelimit.New(100),
+			elmLimit: ratelimit.New(1000),
 		}
 	}
 

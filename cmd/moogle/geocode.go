@@ -18,12 +18,12 @@ func (s *server) geocodeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ready, _ = s.dailyLimit.TryTake(1)
-	if !ready {
-		json, _ := json.Marshal(moogle.GEOCODE_DAILY_LIMIT)
-		w.Write(json)
-		return
-	}
+	// ready, _ = s.dailyLimit.TryTake(1)
+	// if !ready {
+	// 	json, _ := json.Marshal(moogle.GEOCODE_DAILY_LIMIT)
+	// 	w.Write(json)
+	// 	return
+	// }
 
 	res := moogle.GeocodeResponse{}
 	json, _ := json.Marshal(res)

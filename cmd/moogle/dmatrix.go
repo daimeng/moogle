@@ -44,12 +44,12 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ready, _ = s.dailyLimit.TryTake(1)
-	if !ready {
-		json, _ := json.Marshal(moogle.MATRIX_DAILY_LIMIT)
-		w.Write(json)
-		return
-	}
+	// ready, _ = s.dailyLimit.TryTake(1)
+	// if !ready {
+	// 	json, _ := json.Marshal(moogle.MATRIX_DAILY_LIMIT)
+	// 	w.Write(json)
+	// 	return
+	// }
 
 	origP := parsell(origins)
 	destP := parsell(dests)

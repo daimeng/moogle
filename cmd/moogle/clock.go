@@ -14,5 +14,5 @@ func (s *server) clockStepHandler(w http.ResponseWriter, r *http.Request) {
 func (s *server) clockResetHandler(w http.ResponseWriter, r *http.Request) {
 	s.secLimit.Reset()
 	s.elmLimit.Reset()
-	s.dailyLimit.Reset()
+	// s.dailyLimit.Reset()
 }
