@@ -93,6 +93,7 @@ func main() {
 
 	http.HandleFunc("/maps/api/geocode/json", s.geocodeHandler)
 	http.HandleFunc("/maps/api/distancematrix/json", s.distanceMatrixHandler)
+	http.HandleFunc("/reset", s.clockResetHandler)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 
 	// if err != nil && err != http.ErrServerClosed {
