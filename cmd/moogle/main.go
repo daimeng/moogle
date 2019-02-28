@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/daimeng/moogle"
 	"github.com/daimeng/ratelimit"
+	"github.com/daimeng/ratelimit/clock"
 	_ "github.com/lib/pq"
 )
 
@@ -21,34 +22,10 @@ const (
 
 type server struct {
 	// db *sql.DB
+	clock      *clock.Mock
 	dailyLimit ratelimit.Limiter
 	secLimit   ratelimit.Limiter
 	elmLimit   ratelimit.Limiter
-}
-
-// TODO: Implement
-func (s *server) geocodeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	sec, _ := s.secLimit.TryTake()
-	elm := false
-	if sec {
-		elm, _ = s.elmLimit.TryTake()
-	}
-	daily := false
-	if elm {
-		daily, _ = s.dailyLimit.TryTake()
-	}
-
-	if !(sec && daily && elm) {
-		json, _ := json.Marshal(moogle.GEOCODE_QUERY_LIMIT)
-		w.Write(json)
-		return
-	}
-
-	res := moogle.GeocodeResponse{}
-	json, _ := json.Marshal(res)
-	w.Write(json)
 }
 
 func parsell(s []string) []moogle.Point {
@@ -75,69 +52,12 @@ func parsell(s []string) []moogle.Point {
 // 	return s
 // }
 
-func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	sec, _ := s.secLimit.TryTake()
-	elm := false
-	if sec {
-		elm, _ = s.elmLimit.TryTake()
-	}
-	daily := false
-	if elm {
-		daily, _ = s.dailyLimit.TryTake()
-	}
-
-	if !(sec && daily && elm) {
-		json, _ := json.Marshal(moogle.MATRIX_QUERY_LIMIT)
-		w.Write(json)
-		return
-	}
-
-	q := r.URL.Query()
-	originStr := q["origins"]
-	destStr := q["destinations"]
-
-	origins := strings.Split(originStr[0], "|")
-	dests := strings.Split(destStr[0], "|")
-
-	origP := parsell(origins)
-	destP := parsell(dests)
-
-	olen := len(origP)
-	dlen := len(destP)
-
-	dists := moogle.DistManhattan(origP, destP)
-	rows := make([]moogle.DistanceRow, olen)
-
-	for i := range origins {
-		elems := make([]moogle.DistanceElm, dlen)
-		for j := range dests {
-			d := int(dists[i*dlen+j])
-			elems[j].Distance = &moogle.TextedInt{
-				Value: d,
-				Text:  fmt.Sprintf("%d m", d),
-			}
-			elems[j].Duration = &moogle.TextedInt{
-				Value: d / 20,
-				Text:  fmt.Sprintf("%d min", d/20),
-			}
-			elems[j].Status = moogle.ElmOk
-		}
-		rows[i].Elements = elems
-	}
-
-	res := moogle.MatrixResponse{
-		DestinationAddresses: dests,
-		OriginAddresses:      origins,
-		Rows:                 rows,
-	}
-	json, _ := json.Marshal(res)
-	log.Printf("%s", json)
-	w.Write(json)
-}
-
 func main() {
+	port := flag.Int("port", 8080, "Server port")
+	step := flag.Bool("step", false, "Manual step clock")
+
+	flag.Parse()
+
 	// psqlInfo := fmt.Sprintf("host=%s port=%d dbname=%s sslmode=disable",
 	// 	host, port, dbname)
 
@@ -152,15 +72,28 @@ func main() {
 	// 	panic(err)
 	// }
 
-	s := server{
-		dailyLimit: ratelimit.New(500000, ratelimit.WithoutSlack),
-		secLimit:   ratelimit.New(100),
-		elmLimit:   ratelimit.New(1000),
+	var s server
+	if *step {
+		clock := clock.NewMock()
+
+		s = server{
+			clock:      clock,
+			dailyLimit: ratelimit.New(500000, ratelimit.WithClock(clock), ratelimit.WithoutSlack),
+			secLimit:   ratelimit.New(100, ratelimit.WithClock(clock)),
+			elmLimit:   ratelimit.New(1000, ratelimit.WithClock(clock)),
+		}
+		http.HandleFunc("/step", s.clockStepHandler)
+	} else {
+		s = server{
+			dailyLimit: ratelimit.New(500000, ratelimit.WithoutSlack),
+			secLimit:   ratelimit.New(100),
+			elmLimit:   ratelimit.New(1000),
+		}
 	}
 
 	http.HandleFunc("/maps/api/geocode/json", s.geocodeHandler)
 	http.HandleFunc("/maps/api/distancematrix/json", s.distanceMatrixHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 
 	// if err != nil && err != http.ErrServerClosed {
 	// 	log.Fatal(err)
