@@ -34,6 +34,7 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 	if !ready {
 		json, _ := json.Marshal(moogle.MATRIX_QUERY_LIMIT)
 		w.Write(json)
+		log.Printf("%s", json)
 		return
 	}
 
@@ -41,6 +42,7 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 	if !ready {
 		json, _ := json.Marshal(moogle.MATRIX_ELEMENT_LIMIT)
 		w.Write(json)
+		log.Printf("%s", json)
 		return
 	}
 
