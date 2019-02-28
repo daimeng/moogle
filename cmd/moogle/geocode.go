@@ -11,18 +11,16 @@ import (
 func (s *server) geocodeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	sec, _ := s.secLimit.TryTake()
-	elm := false
-	if sec {
-		elm, _ = s.elmLimit.TryTake()
-	}
-	daily := false
-	if elm {
-		daily, _ = s.dailyLimit.TryTake()
+	ready, _ := s.secLimit.TryTake(1)
+	if !ready {
+		json, _ := json.Marshal(moogle.GEOCODE_QUERY_LIMIT)
+		w.Write(json)
+		return
 	}
 
-	if !(sec && daily && elm) {
-		json, _ := json.Marshal(moogle.GEOCODE_QUERY_LIMIT)
+	ready, _ = s.dailyLimit.TryTake(1)
+	if !ready {
+		json, _ := json.Marshal(moogle.GEOCODE_DAILY_LIMIT)
 		w.Write(json)
 		return
 	}

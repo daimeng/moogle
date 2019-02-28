@@ -12,6 +12,20 @@ var MATRIX_QUERY_LIMIT = MatrixResponse{
 	Status:               OverQueryLimit,
 }
 
+var MATRIX_ELEMENT_LIMIT = MatrixResponse{
+	DestinationAddresses: []string{},
+	OriginAddresses:      []string{},
+	Rows:                 []DistanceRow{},
+	Status:               MaxElementsExceeded,
+}
+
+var MATRIX_DAILY_LIMIT = MatrixResponse{
+	DestinationAddresses: []string{},
+	OriginAddresses:      []string{},
+	Rows:                 []DistanceRow{},
+	Status:               OverDailyLimit,
+}
+
 var MATRIX_NO_KEY = MatrixResponse{
 	DestinationAddresses: []string{},
 	OriginAddresses:      []string{},
@@ -32,6 +46,12 @@ var GEOCODE_QUERY_LIMIT = GeocodeResponse{
 	ErrorMessage: missingAPIKey,
 	Results:      []AddressResult{},
 	Status:       OverQueryLimit,
+}
+
+var GEOCODE_DAILY_LIMIT = GeocodeResponse{
+	ErrorMessage: missingAPIKey,
+	Results:      []AddressResult{},
+	Status:       OverDailyLimit,
 }
 
 var GEOCODE_DENIED = GeocodeResponse{

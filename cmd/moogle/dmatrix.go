@@ -24,30 +24,35 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 	originStr := q.Get("origins")
 	destStr := q.Get("destinations")
 
-	sec, _ := s.secLimit.TryTake()
-	elm := false
-	if sec {
-		elm, _ = s.elmLimit.TryTake()
-	}
-	daily := false
-	if elm {
-		daily, _ = s.dailyLimit.TryTake()
-	}
+	origins := strings.Split(originStr, "|")
+	dests := strings.Split(destStr, "|")
 
-	if !(sec && daily && elm) {
+	olen := len(origins)
+	dlen := len(dests)
+
+	ready, _ := s.secLimit.TryTake(1)
+	if !ready {
 		json, _ := json.Marshal(moogle.MATRIX_QUERY_LIMIT)
 		w.Write(json)
 		return
 	}
 
-	origins := strings.Split(originStr, "|")
-	dests := strings.Split(destStr, "|")
+	ready, _ = s.elmLimit.TryTake(olen * dlen)
+	if !ready {
+		json, _ := json.Marshal(moogle.MATRIX_ELEMENT_LIMIT)
+		w.Write(json)
+		return
+	}
+
+	ready, _ = s.dailyLimit.TryTake(1)
+	if !ready {
+		json, _ := json.Marshal(moogle.MATRIX_DAILY_LIMIT)
+		w.Write(json)
+		return
+	}
 
 	origP := parsell(origins)
 	destP := parsell(dests)
-
-	olen := len(origP)
-	dlen := len(destP)
 
 	dists := moogle.DistManhattan(origP, destP)
 	rows := make([]moogle.DistanceRow, olen)
