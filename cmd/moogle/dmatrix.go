@@ -30,7 +30,8 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 	olen := len(origins)
 	dlen := len(dests)
 
-	ready, _ := s.secLimit.TryTake(1)
+	// TODO: Parallelize waits
+	_, ready := s.secLimit.TakeMaxDuration(1, 20*SEC)
 	if !ready {
 		json, _ := json.Marshal(moogle.MATRIX_QUERY_LIMIT)
 		w.Write(json)
@@ -38,7 +39,7 @@ func (s *server) distanceMatrixHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ready, _ = s.elmLimit.TryTake(olen * dlen)
+	_, ready = s.elmLimit.TakeMaxDuration(int64(olen*dlen), 10*SEC)
 	if !ready {
 		json, _ := json.Marshal(moogle.MATRIX_ELEMENT_LIMIT)
 		w.Write(json)

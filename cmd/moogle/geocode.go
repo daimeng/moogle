@@ -11,7 +11,7 @@ import (
 func (s *server) geocodeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ready, _ := s.secLimit.TryTake(1)
+	_, ready := s.secLimit.TakeMaxDuration(1, 10*SEC)
 	if !ready {
 		json, _ := json.Marshal(moogle.GEOCODE_QUERY_LIMIT)
 		w.Write(json)

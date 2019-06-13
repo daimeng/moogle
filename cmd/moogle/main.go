@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/daimeng/moogle"
-	"github.com/daimeng/ratelimit"
-	"github.com/daimeng/ratelimit/clock"
+	"github.com/juju/ratelimit"
 	_ "github.com/lib/pq"
 )
 
@@ -22,10 +22,9 @@ const (
 
 type server struct {
 	// db *sql.DB
-	clock *clock.Mock
-	// dailyLimit ratelimit.Limiter
-	secLimit ratelimit.Limiter
-	elmLimit ratelimit.Limiter
+	dailyLimit *ratelimit.Bucket
+	secLimit   *ratelimit.Bucket
+	elmLimit   *ratelimit.Bucket
 }
 
 func parsell(s []string) []moogle.Point {
@@ -52,11 +51,18 @@ func parsell(s []string) []moogle.Point {
 // 	return s
 // }
 
+var DAY time.Duration
+var SEC time.Duration
+
 func main() {
+	DAY, _ := time.ParseDuration("24h")
+	SEC, _ := time.ParseDuration("1s")
+
 	port := flag.Int("port", 8080, "Server port")
-	step := flag.Bool("step", false, "Manual step clock")
-	sec := flag.Int("seclimit", 100, "Per second query limit")
-	elm := flag.Int("elmlimit", 1000, "Per second element limit")
+	// step := flag.Bool("step", false, "Manual step clock")
+	day := flag.Int64("daylimit", 500000, "Per day query limit")
+	sec := flag.Int64("seclimit", 100, "Per second query limit")
+	elm := flag.Int64("elmlimit", 1000, "Per second element limit")
 
 	flag.Parse()
 
@@ -74,28 +80,15 @@ func main() {
 	// 	panic(err)
 	// }
 
-	var s server
-	if *step {
-		clock := clock.NewMock()
-
-		s = server{
-			clock: clock,
-			// dailyLimit: ratelimit.New(500000, ratelimit.WithClock(clock), ratelimit.WithoutSlack),
-			secLimit: ratelimit.New(*sec, ratelimit.WithClock(clock)),
-			elmLimit: ratelimit.New(*elm, ratelimit.WithClock(clock)),
-		}
-		http.HandleFunc("/step", s.clockStepHandler)
-	} else {
-		s = server{
-			// dailyLimit: ratelimit.New(500000, ratelimit.WithoutSlack),
-			secLimit: ratelimit.New(*sec),
-			elmLimit: ratelimit.New(*elm),
-		}
+	s := server{
+		dailyLimit: ratelimit.NewBucketWithQuantum(DAY, *day, *day),
+		secLimit:   ratelimit.NewBucketWithQuantum(SEC/10, *sec/10*2, *sec/10),
+		elmLimit:   ratelimit.NewBucketWithQuantum(SEC/10, *elm, *elm/10),
 	}
 
 	http.HandleFunc("/maps/api/geocode/json", s.geocodeHandler)
 	http.HandleFunc("/maps/api/distancematrix/json", s.distanceMatrixHandler)
-	http.HandleFunc("/reset", s.clockResetHandler)
+	// http.HandleFunc("/reset", s.clockResetHandler)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 
 	// if err != nil && err != http.ErrServerClosed {
